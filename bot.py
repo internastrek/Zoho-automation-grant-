@@ -49,7 +49,7 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Failed at: {e}")
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
-def main():
+async def run_bot():
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
         raise RuntimeError("TELEGRAM_BOT_TOKEN is not set — check env vars")
@@ -61,7 +61,18 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
 
     print("Bot is running...")
-    app.run_polling(drop_pending_updates=True)
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(drop_pending_updates=True)
+
+    # Keep running
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    except (KeyboardInterrupt, SystemExit):
+        await app.updater.stop()
+        await app.stop()
+        await app.shutdown()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(run_bot())
