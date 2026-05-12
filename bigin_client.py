@@ -49,7 +49,7 @@ def push_to_bigin(grant_data: dict):
 
     access_token = get_access_token()
 
-    url = "https://www.zohoapis.in/bigin/v2/Pipelines"
+    url = "https://www.zohoapis.com/bigin/v2/Pipelines"
 
     headers = {
         "Authorization": f"Zoho-oauthtoken {access_token}",

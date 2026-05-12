@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_access_token():
-    url = "https://accounts.zoho.in/oauth/v2/token"
+    url = "https://accounts.zoho.com/oauth/v2/token"
 
     payload = {
         "grant_type": "refresh_token",
