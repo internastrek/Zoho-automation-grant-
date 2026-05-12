@@ -31,8 +31,12 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Failed at: {e}")
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
-app = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
+token = os.getenv("TELEGRAM_BOT_TOKEN")
+if not token:
+    raise RuntimeError("TELEGRAM_BOT_TOKEN is not set — check Railway env vars")
+
+app = ApplicationBuilder().token(token).build()
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
 
 print("Bot is running...")
-app.run_polling()
+app.run_polling(drop_pending_updates=True)
