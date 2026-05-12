@@ -19,11 +19,16 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"Got it! Processing {url} ...")
 
     try:
+        print("Step 1: Scraping...")
         raw_text = scrape_website(url)
+        print("Step 2: Extracting...")
         grant_data = extract_grant_details(raw_text, url)
+        print("Step 3: Pushing to Bigin...")
         push_to_bigin(grant_data.model_dump())
+        print("Step 4: Done!")
         await update.message.reply_text(f"✅ Successfully pushed to Bigin!\n\n*{grant_data.oppurtunity_name}*", parse_mode="Markdown")
     except Exception as e:
+        print(f"Failed at: {e}")
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
 app = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
