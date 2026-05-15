@@ -20,8 +20,18 @@ TYPE_MAPPING = {
 
 
 def extract_grant_details(raw_text: str, url: str):
+    print("Connecting to Groq API...")
+    
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is not set — check env vars")
+    
+    print(f"API key loaded: {api_key[:8]}...")
 
-    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    client = Groq(
+        api_key=api_key,
+        timeout=30.0
+    )
 
     prompt = f"""
 You are an expert grant analyst.
@@ -49,11 +59,13 @@ Grant Information:
 {raw_text[:8000]}
 """
 
+    print("Sending request to Groq...")
     completion = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         temperature=0
     )
+    print("Groq response received!")
 
     response_text = completion.choices[0].message.content.strip()
 
@@ -106,4 +118,5 @@ Grant Information:
         "description": data.get("description", "")
     }
 
+    print(f"Extracted: {final_data['oppurtunity_name']}")
     return GrantDetails(**final_data)
