@@ -4,7 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_access_token():
-    url = "https://accounts.zoho.com/oauth/v2/token"
+    urls = [
+        "https://accounts.zoho.com/oauth/v2/token",
+        "https://accounts.zoho.in/oauth/v2/token"
+    ]
 
     payload = {
         "grant_type": "refresh_token",
@@ -13,12 +16,18 @@ def get_access_token():
         "refresh_token": os.getenv("ZOHO_REFRESH_TOKEN")
     }
 
-    response = requests.post(url, data=payload)
-    print("Auth response:", response.text)  # add this line
+    for url in urls:
+        try:
+            print(f"Trying {url}...")
+            response = requests.post(url, data=payload, timeout=10)
+            print(f"Response: {response.status_code} - {response.text[:200]}")
+            if response.status_code == 200:
+                return response.json()["access_token"]
+        except Exception as e:
+            print(f"Failed with {url}: {e}")
+            continue
 
-    if response.status_code != 200:
-        raise Exception(f"Token error: {response.text}")
+    raise Exception("Could not connect to Zoho auth server")
 
-    return response.json()["access_token"]
 if __name__ == "__main__":
     print(get_access_token())

@@ -46,10 +46,12 @@ def clean_date(date_str):
         return None
 
 def push_to_bigin(grant_data: dict):
-
     access_token = get_access_token()
 
-    url = "https://www.zohoapis.com/bigin/v2/Pipelines"
+    urls = [
+        "https://www.zohoapis.com/bigin/v2/Pipelines",
+        "https://www.zohoapis.in/bigin/v2/Pipelines"
+    ]
 
     headers = {
         "Authorization": f"Zoho-oauthtoken {access_token}",
@@ -76,9 +78,16 @@ def push_to_bigin(grant_data: dict):
 
     print("PAYLOAD BEING SENT:", json.dumps(payload, indent=2))
 
-    response = requests.post(url, headers=headers, json=payload)
+    for url in urls:
+        try:
+            print(f"Trying {url}...")
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            print(f"Status: {response.status_code}")
+            print(f"Response: {response.text[:300]}")
+            if response.status_code in [200, 201]:
+                return response.json()
+        except Exception as e:
+            print(f"Failed with {url}: {e}")
+            continue
 
-    print("Status:", response.status_code)
-    print("Response:", response.text)
-
-    return response.json()
+    raise Exception("Could not push to Zoho Bigin")
