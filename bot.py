@@ -1,4 +1,7 @@
 import os
+import asyncio
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
@@ -9,6 +12,21 @@ from bigin_client import push_to_bigin
 
 load_dotenv()
 
+# Simple health check server for Render
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+    def log_message(self, format, *args):
+        pass
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    server.serve_forever()
+
+# Bot logic
 async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text.strip()
 
@@ -31,12 +49,30 @@ async def handle_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Failed at: {e}")
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
-token = os.getenv("TELEGRAM_BOT_TOKEN")
-if not token:
-    raise RuntimeError("TELEGRAM_BOT_TOKEN is not set — check Railway env vars")
+async def run_bot():
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise RuntimeError("TELEGRAM_BOT_TOKEN is not set — check env vars")
 
-app = ApplicationBuilder().token(token).build()
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
+    # Start health server in background
+    threading.Thread(target=start_health_server, daemon=True).start()
 
-print("Bot is running...")
-app.run_polling(drop_pending_updates=True)
+    app = ApplicationBuilder().token(token).build()
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_url))
+
+    print("Bot is running...")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(drop_pending_updates=True)
+
+    # Keep running
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    except (KeyboardInterrupt, SystemExit):
+        await app.updater.stop()
+        await app.stop()
+        await app.shutdown()
+
+if __name__ == "__main__":
+    asyncio.run(run_bot())
